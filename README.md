@@ -25,3 +25,7 @@ Abra o arquivo `index.html` em um navegador. Para servir por HTTP, utilize um se
 5. Testar o fluxo ponta a ponta antes de habilitar contratações reais.
 
 Código-base preservado como protótipo, sem credenciais ou configuração de servidor incluídas.
+
+## Publicação automática
+
+O workflow `.github/workflows/deploy.yml` é acionado a cada novo commit na branch `main` ou manualmente pelo GitHub Actions. A conexão FTPS exige que `FTP_HOST` corresponda ao certificado TLS do servidor Hostoo.
