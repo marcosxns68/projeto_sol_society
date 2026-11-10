@@ -1,0 +1,65 @@
+name: Publicar Society na Hostoo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: society-hostoo-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publicar site via FTPS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter arquivos do site
+        uses: actions/checkout@v4
+
+      - name: Preparar apenas os arquivos publicos
+        run: |
+          set -eu
+          mkdir -p deploy
+          cp index.html deploy/index.html
+          test -s deploy/index.html
+
+      - name: Validar configuracao de deploy
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_PORT: ${{ secrets.FTP_PORT }}
+          FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          set -eu
+          for name in FTP_HOST FTP_USERNAME FTP_PASSWORD FTP_PORT FTP_SERVER_DIR; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name nao foi configurado"
+              exit 1
+            fi
+          done
+          case "$FTP_PORT" in
+            *[!0-9]*|'') echo "::error::FTP_PORT deve ser numerico"; exit 1;;
+          esac
+          case "$FTP_SERVER_DIR" in
+            */society/) ;;
+            *) echo "::error::FTP_SERVER_DIR deve apontar para uma pasta dedicada terminada em /society/"; exit 1;;
+          esac
+
+      - name: Publicar Society na Hostoo
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ secrets.FTP_PORT }}
+          protocol: ftps
+          security: strict
+          local-dir: ./deploy/
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          dangerous-clean-slate: false
+          log-level: standard
